@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Free Invoice Generator — Make & Download Invoices as PDF</title>
+<meta name="description" content="Create professional invoices in seconds. Fill in your details, see a live preview, and download as PDF — free, no signup.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --ink: #1A1D29;
+    --paper: #F7F5F0;
+    --paper-edge: #E8E4DC;
+    --accent: #FF5A36;
+    --slate: #6B7280;
+    --white: #FFFFFF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* Header */
+  header {
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--paper-edge);
+  }
+
+  .logo {
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .logo-mark {
+    width: 22px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 4px;
+    display: inline-block;
+    position: relative;
+  }
+
+  .logo-mark::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    right: 5px;
+    height: 2px;
+    background: var(--white);
+    box-shadow: 0 4px 0 var(--white), 0 8px 0 var(--white);
+  }
+
+  .tagline {
+    font-size: 0.85rem;
+    color: var(--slate);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Layout */
+  .app {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    min-height: calc(100vh - 73px);
+    position: relative;
+  }
+
+  .divider {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 2px dashed var(--paper-edge);
+    z-index: 2;
+  }
+
+  .divider::before, .divider::after {
+    content: '';
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    background: var(--ink);
+    border-radius: 50%;
+    left: -14px;
+  }
+
+  .divider::before { top: -14px; }
+  .divider::after { bottom: -14px; }
+
+  /* Form panel */
+  .form-panel {
+    padding: 40px 48px;
+    overflow-y: auto;
+  }
+
+  .form-panel h1 {
+    font-size: 1.7rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+
+  .form-panel .subhead {
+    color: var(--slate);
+    font-size: 0.95rem;
+    margin-bottom: 32px;
+  }
+
+  .field-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .field-group.single { grid-template-columns: 1fr; }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--slate);
+  }
+
+  .field input, .field textarea, .field select {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    border: 1.5px solid var(--paper-edge);
+    border-radius: 6px;
+    background: var(--white);
+    color: var(--ink);
+    transition: border-color 0.15s ease;
+  }
+
+  .field input:focus, .field textarea:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .field textarea { resize: vertical; min-height: 60px; font-family: 'Space Grotesk', sans-serif; }
+
+  .section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ink);
+    margin: 32px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Line items */
+  .line-items { display: flex; flex-direction: column; gap: 8px; }
+
+  .line-item {
+    display: grid;
+    grid-template-columns: 1fr 70px 90px 90px 32px;
+    gap: 8px;
+    align-items: end;
+  }
+
+  .line-item input {
+    width: 100%;
+  }
+
+  .remove-line {
+    background: none;
+    border: 1.5px solid var(--paper-edge);
+    border-radius: 6px;
+    color: var(--slate);
+    font-size: 1rem;
+    cursor: pointer;
+    height: 38px;
+    transition: all 0.15s ease;
+  }
+
+  .remove-line:hover { border-color: var(--accent); color: var(--accent); }
+
+  .line-item-header {
+    display: grid;
+    grid-template-columns: 1fr 70px 90px 90px 32px;
+    gap: 8px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--slate);
+    font-weight: 600;
+    padding: 0 0 2px;
+  }
+
+  .add-line {
+    margin-top: 12px;
+    background: none;
+    border: 1.5px dashed var(--paper-edge);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--slate);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .add-line:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Buttons */
+  .actions {
+    margin-top: 36px;
+    display: flex;
+    gap: 12px;
+  }
+
+  .btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 14px 28px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--white);
+    box-shadow: 0 4px 0 #C73E1F;
+  }
+
+  .btn-primary:hover { transform: translateY(2px); box-shadow: 0 2px 0 #C73E1F; }
+  .btn-primary:active { transform: translateY(4px); box-shadow: none; }
+
+  .btn-secondary {
+    background: var(--white);
+    color: var(--ink);
+    border: 1.5px solid var(--paper-edge);
+  }
+
+  .btn-secondary:hover { border-color: var(--ink); }
+
+  /* Preview panel */
+  .preview-panel {
+    background: #EFEBE3;
+    padding: 40px 48px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .preview-stamp {
+    position: absolute;
+    top: 56px;
+    right: 56px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+    padding: 4px 10px;
+    border-radius: 4px;
+    transform: rotate(6deg);
+    text-transform: uppercase;
+    z-index: 3;
+    background: rgba(255,255,255,0.85);
+  }
+
+  .invoice-paper {
+    background: var(--white);
+    width: 100%;
+    max-width: 580px;
+    min-height: 750px;
+    padding: 56px;
+    box-shadow: 0 12px 40px rgba(26, 29, 41, 0.12), 0 2px 8px rgba(26, 29, 41, 0.06);
+    position: relative;
+  }
+
+  .inv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 40px;
+    padding-bottom: 24px;
+    border-bottom: 3px solid var(--ink);
+  }
+
+  .inv-from h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .inv-from p, .inv-meta p {
+    font-size: 0.82rem;
+    color: var(--slate);
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+
+  .inv-meta {
+    text-align: right;
+  }
+
+  .inv-meta .inv-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .inv-meta-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    font-size: 0.82rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .inv-meta-row span:first-child { color: var(--slate); }
+  .inv-meta-row span:last-child { font-weight: 600; }
+
+  .inv-bill-to {
+    margin-bottom: 32px;
+  }
+
+  .inv-bill-to .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--slate);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .inv-bill-to p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+
+  .inv-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+  }
+
+  .inv-table th {
+    text-align: left;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--slate);
+    font-weight: 600;
+    padding: 0 0 10px;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .inv-table th:not(:first-child), .inv-table td:not(:first-child) {
+    text-align: right;
+  }
+
+  .inv-table td {
+    padding: 10px 0;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--paper-edge);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .inv-table td:first-child {
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .inv-totals {
+    margin-left: auto;
+    width: 240px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .inv-totals-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .inv-totals-row.total {
+    border-top: 2px solid var(--ink);
+    padding-top: 10px;
+    margin-top: 4px;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .inv-notes {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--paper-edge);
+  }
+
+  .inv-notes .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--slate);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .inv-notes p {
+    font-size: 0.82rem;
+    color: var(--slate);
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+
+  /* Footer banner */
+  .footer-note {
+    padding: 32px 48px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--slate);
+    border-top: 1px solid var(--paper-edge);
+    grid-column: 1 / -1;
+  }
+
+  .footer-note strong { color: var(--ink); }
+
+  /* SEO content section */
+  .seo-content {
+    background: var(--white);
+    border-top: 1px solid var(--paper-edge);
+    padding: 64px 24px;
+  }
+
+  .seo-inner {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .seo-inner h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 16px;
+  }
+
+  .seo-inner h3 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin: 40px 0 16px;
+    padding-top: 8px;
+    border-top: 2px solid var(--ink);
+  }
+
+  .seo-inner h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 24px 0 8px;
+  }
+
+  .seo-inner p {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--slate);
+    margin-bottom: 8px;
+  }
+
+  .seo-inner ol {
+    padding-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .seo-inner li {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--slate);
+  }
+
+  .seo-inner li strong {
+    color: var(--ink);
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .divider { display: none; }
+    .form-panel, .preview-panel { padding: 28px 20px; }
+    .line-item, .line-item-header {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .line-item-header { display: none; }
+    .line-item { border-bottom: 1px solid var(--paper-edge); padding-bottom: 12px; margin-bottom: 4px; }
+    .field-group { grid-template-columns: 1fr; }
+    .preview-stamp { top: 28px; right: 28px; }
+    .invoice-paper { padding: 28px; min-height: auto; }
+  }
+
+  /* Focus visibility */
+  button:focus-visible, input:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><span class="logo-mark"></span> InvoicePilot</div>
+  <div class="tagline">free invoice generator</div>
+</header>
+
+<div class="app">
+  <div class="divider"></div>
+
+  <div class="form-panel">
+    <h1>Make an invoice</h1>
+    <p class="subhead">Fill this in and your invoice updates on the right. Download it as a PDF when it's ready — no account needed.</p>
+
+    <div class="section-label">From</div>
+    <div class="field-group">
+      <div class="field">
+        <label for="fromName">Your name or business</label>
+        <input type="text" id="fromName" placeholder="Jordan Smith Design Co." value="Jordan Smith Design Co.">
+      </div>
+      <div class="field">
+        <label for="fromEmail">Email</label>
+        <input type="text" id="fromEmail" placeholder="jordan@example.com" value="jordan@example.com">
+      </div>
+    </div>
+    <div class="field-group single">
+      <div class="field">
+        <label for="fromAddress">Address (optional)</label>
+        <textarea id="fromAddress" placeholder="123 Maple Street&#10;Austin, TX 78701">123 Maple Street
+Austin, TX 78701</textarea>
+      </div>
+    </div>
+
+    <div class="section-label">Bill to</div>
+    <div class="field-group single">
+      <div class="field">
+        <label for="toDetails">Client name & address</label>
+        <textarea id="toDetails" placeholder="Acme Corp&#10;attn: Accounts Payable&#10;456 Oak Ave, Suite 200">Acme Corp
+attn: Accounts Payable
+456 Oak Ave, Suite 200</textarea>
+      </div>
+    </div>
+
+    <div class="section-label">Invoice details</div>
+    <div class="field-group">
+      <div class="field">
+        <label for="invNumber">Invoice number</label>
+        <input type="text" id="invNumber" placeholder="INV-0001" value="INV-0001">
+      </div>
+      <div class="field">
+        <label for="currency">Currency</label>
+        <select id="currency">
+          <option value="$">USD ($)</option>
+          <option value="€">EUR (€)</option>
+          <option value="£">GBP (£)</option>
+          <option value="₹">INR (₹)</option>
+          <option value="A$">AUD (A$)</option>
+          <option value="C$">CAD (C$)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="field">
+        <label for="issueDate">Issue date</label>
+        <input type="date" id="issueDate">
+      </div>
+      <div class="field">
+        <label for="dueDate">Due date</label>
+        <input type="date" id="dueDate">
+      </div>
+    </div>
+
+    <div class="section-label">Items</div>
+    <div class="line-item-header">
+      <span>Description</span><span>Qty</span><span>Rate</span><span>Amount</span><span></span>
+    </div>
+    <div class="line-items" id="lineItems"></div>
+    <button class="add-line" id="addLine" type="button">+ Add line item</button>
+
+    <div class="section-label">Tax & notes</div>
+    <div class="field-group">
+      <div class="field">
+        <label for="taxRate">Tax rate (%)</label>
+        <input type="number" id="taxRate" placeholder="0" value="0" min="0" step="0.1">
+      </div>
+      <div class="field">
+        <label for="discount">Discount (%)</label>
+        <input type="number" id="discount" placeholder="0" value="0" min="0" step="0.1">
+      </div>
+    </div>
+    <div class="field-group single">
+      <div class="field">
+        <label for="notes">Notes (payment terms, thanks, etc.)</label>
+        <textarea id="notes" placeholder="Thanks for your business! Payment due within 14 days.">Thanks for your business! Payment due within 14 days.</textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="downloadBtn" type="button">Download PDF</button>
+      <button class="btn btn-secondary" id="resetBtn" type="button">Reset</button>
+    </div>
+  </div>
+
+  <div class="preview-panel">
+    <div class="preview-stamp">Live preview</div>
+    <div class="invoice-paper" id="invoicePaper">
+      <div class="inv-header">
+        <div class="inv-from">
+          <h2 id="pFromName">Jordan Smith Design Co.</h2>
+          <p id="pFromAddress">123 Maple Street
+Austin, TX 78701</p>
+          <p id="pFromEmail">jordan@example.com</p>
+        </div>
+        <div class="inv-meta">
+          <div class="inv-title">INVOICE</div>
+          <div class="inv-meta-row"><span># </span><span id="pInvNumber">INV-0001</span></div>
+          <div class="inv-meta-row"><span>Issued </span><span id="pIssueDate">—</span></div>
+          <div class="inv-meta-row"><span>Due </span><span id="pDueDate">—</span></div>
+        </div>
+      </div>
+
+      <div class="inv-bill-to">
+        <div class="label">Bill to</div>
+        <p id="pToDetails">Acme Corp
+attn: Accounts Payable
+456 Oak Ave, Suite 200</p>
+      </div>
+
+      <table class="inv-table">
+        <thead>
+          <tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
+        </thead>
+        <tbody id="pLineItems"></tbody>
+      </table>
+
+      <div class="inv-totals" id="pTotals"></div>
+
+      <div class="inv-notes" id="pNotesWrap">
+        <div class="label">Notes</div>
+        <p id="pNotes">Thanks for your business! Payment due within 14 days.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    Free forever for one-off invoices. <strong>InvoicePilot Pro</strong> (coming soon) adds saved templates, your logo, recurring invoices, and no watermark — for freelancers who bill every month.
+  </div>
+</div>
+
+<section class="seo-content">
+  <div class="seo-inner">
+    <h2>Free invoice generator — create and download invoices as PDF</h2>
+    <p>
+      InvoicePilot is a free tool for freelancers, contractors, and small businesses that need to send a professional invoice in minutes. Fill in your details on the form above, watch the preview update as you type, and download a clean PDF you can email straight to your client. No signup, no account, and no watermark.
+    </p>
+
+    <h3>How to make an invoice</h3>
+    <ol>
+      <li><strong>Add your business details.</strong> Enter your name or business name, email, and address in the "From" section.</li>
+      <li><strong>Add your client's details.</strong> Enter who the invoice is addressed to in "Bill to" — name, company, and address.</li>
+      <li><strong>Set the invoice number and dates.</strong> Pick an invoice number you can track later, plus the issue date and payment due date.</li>
+      <li><strong>List what you're billing for.</strong> Add one line per item or service, with a quantity and rate — the amount and total calculate automatically.</li>
+      <li><strong>Add tax or a discount if needed.</strong> Enter a percentage and it's applied to the total.</li>
+      <li><strong>Download your PDF.</strong> Click "Download PDF" and the finished invoice saves to your device, ready to email.</li>
+    </ol>
+
+    <h3>Frequently asked questions</h3>
+
+    <h4>Is this invoice generator really free?</h4>
+    <p>Yes. There's no signup, no account, and no limit on how many invoices you can create. The PDF download has no watermark.</p>
+
+    <h4>Where is my data stored?</h4>
+    <p>Nowhere but your browser. Everything you type stays on your device — nothing is uploaded or saved on a server, so your client information stays private.</p>
+
+    <h4>What should an invoice include?</h4>
+    <p>At minimum: your business name and contact details, your client's name and address, a unique invoice number, the issue date and due date, a description of the work with quantities and rates, the total amount due, and your preferred payment method or terms.</p>
+
+    <h4>How do I number my invoices?</h4>
+    <p>A simple sequential system works well — for example INV-0001, INV-0002, and so on. Some people prefix with the year, like INV-2026-001, which makes it easier to organize invoices by year for taxes.</p>
+
+    <h4>Can I use this for international clients?</h4>
+    <p>Yes — choose your currency from the dropdown before downloading. The tool supports USD, EUR, GBP, INR, AUD, and CAD.</p>
+
+    <h4>Can I save a template to reuse?</h4>
+    <p>Not yet in the free version — each invoice starts fresh. A "save template" feature with your logo and saved client list is coming soon as part of InvoicePilot Pro.</p>
+  </div>
+</section>
+
+<script>
+(function() {
+  let lineItemId = 0;
+
+  const fields = ['fromName','fromEmail','fromAddress','toDetails','invNumber','currency','issueDate','dueDate','taxRate','discount','notes'];
+
+  function createLineItem(desc = '', qty = 1, rate = 0) {
+    const id = lineItemId++;
+    const row = document.createElement('div');
+    row.className = 'line-item';
+    row.dataset.id = id;
+    row.innerHTML = `
+      <input type="text" class="li-desc" placeholder="Website design" value="${desc}">
+      <input type="number" class="li-qty" placeholder="1" value="${qty}" min="0" step="1">
+      <input type="number" class="li-rate" placeholder="0.00" value="${rate}" min="0" step="0.01">
+      <input type="text" class="li-amount mono" value="" disabled>
+      <button class="remove-line" type="button" aria-label="Remove line">×</button>
+    `;
+    row.querySelector('.remove-line').addEventListener('click', () => {
+      row.remove();
+      render();
+    });
+    row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', render));
+    return row;
+  }
+
+  const lineItemsContainer = document.getElementById('lineItems');
+  lineItemsContainer.appendChild(createLineItem('Website design — homepage & 3 inner pages', 1, 1200));
+  lineItemsContainer.appendChild(createLineItem('Revisions (2 rounds)', 2, 75));
+
+  document.getElementById('addLine').addEventListener('click', () => {
+    lineItemsContainer.appendChild(createLineItem());
+    render();
+  });
+
+  // Default dates
+  const today = new Date();
+  const due = new Date();
+  due.setDate(due.getDate() + 14);
+  document.getElementById('issueDate').value = today.toISOString().split('T')[0];
+  document.getElementById('dueDate').value = due.toISOString().split('T')[0];
+
+  fields.forEach(id => {
+    document.getElementById(id).addEventListener('input', render);
+  });
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function render() {
+    const fromName = document.getElementById('fromName').value || 'Your Name';
+    const fromAddress = document.getElementById('fromAddress').value;
+    const fromEmail = document.getElementById('fromEmail').value;
+    const toDetails = document.getElementById('toDetails').value || 'Client name';
+    const invNumber = document.getElementById('invNumber').value || 'INV-0001';
+    const currency = document.getElementById('currency').value;
+    const issueDate = document.getElementById('issueDate').value;
+    const dueDate = document.getElementById('dueDate').value;
+    const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
+    const notes = document.getElementById('notes').value;
+
+    document.getElementById('pFromName').textContent = fromName;
+    document.getElementById('pFromAddress').textContent = fromAddress;
+    document.getElementById('pFromEmail').textContent = fromEmail;
+    document.getElementById('pToDetails').textContent = toDetails;
+    document.getElementById('pInvNumber').textContent = invNumber;
+    document.getElementById('pIssueDate').textContent = formatDate(issueDate);
+    document.getElementById('pDueDate').textContent = formatDate(dueDate);
+
+    const notesWrap = document.getElementById('pNotesWrap');
+    if (notes.trim()) {
+      notesWrap.style.display = '';
+      document.getElementById('pNotes').textContent = notes;
+    } else {
+      notesWrap.style.display = 'none';
+    }
+
+    // Line items
+    const rows = lineItemsContainer.querySelectorAll('.line-item');
+    const pLineItems = document.getElementById('pLineItems');
+    pLineItems.innerHTML = '';
+    let subtotal = 0;
+
+    rows.forEach(row => {
+      const desc = row.querySelector('.li-desc').value || 'Item';
+      const qty = parseFloat(row.querySelector('.li-qty').value) || 0;
+      const rate = parseFloat(row.querySelector('.li-rate').value) || 0;
+      const amount = qty * rate;
+      subtotal += amount;
+      row.querySelector('.li-amount').value = currency + amount.toFixed(2);
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${escapeHtml(desc)}</td><td>${qty}</td><td>${currency}${rate.toFixed(2)}</td><td>${currency}${amount.toFixed(2)}</td>`;
+      pLineItems.appendChild(tr);
+    });
+
+    const discountAmount = subtotal * (discount / 100);
+    const taxedAmount = (subtotal - discountAmount) * (taxRate / 100);
+    const total = subtotal - discountAmount + taxedAmount;
+
+    const totalsEl = document.getElementById('pTotals');
+    totalsEl.innerHTML = '';
+    totalsEl.appendChild(totalsRow('Subtotal', currency + subtotal.toFixed(2)));
+    if (discount > 0) {
+      totalsEl.appendChild(totalsRow(`Discount (${discount}%)`, '−' + currency + discountAmount.toFixed(2)));
+    }
+    if (taxRate > 0) {
+      totalsEl.appendChild(totalsRow(`Tax (${taxRate}%)`, currency + taxedAmount.toFixed(2)));
+    }
+    totalsEl.appendChild(totalsRow('Total', currency + total.toFixed(2), true));
+  }
+
+  function totalsRow(label, value, isTotal = false) {
+    const div = document.createElement('div');
+    div.className = 'inv-totals-row' + (isTotal ? ' total' : '');
+    div.innerHTML = `<span>${label}</span><span>${value}</span>`;
+    return div;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  // PDF Download
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+    const margin = 50;
+    let y = margin;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const currency = document.getElementById('currency').value;
+
+    // Header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(26, 29, 41);
+    doc.text(document.getElementById('fromName').value || 'Your Name', margin, y);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(255, 90, 54);
+    doc.text('INVOICE', pageWidth - margin, y, { align: 'right' });
+
+    y += 16;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    const fromAddr = document.getElementById('fromAddress').value.split('\n');
+    fromAddr.forEach(line => { doc.text(line, margin, y); y += 12; });
+    doc.text(document.getElementById('fromEmail').value, margin, y);
+
+    let yRight = margin + 30;
+    doc.setFontSize(9);
+    doc.text('# ' + (document.getElementById('invNumber').value || 'INV-0001'), pageWidth - margin, yRight, { align: 'right' }); yRight += 14;
+    doc.text('Issued: ' + formatDate(document.getElementById('issueDate').value), pageWidth - margin, yRight, { align: 'right' }); yRight += 14;
+    doc.text('Due: ' + formatDate(document.getElementById('dueDate').value), pageWidth - margin, yRight, { align: 'right' });
+
+    y = Math.max(y, yRight) + 20;
+    doc.setDrawColor(26, 29, 41);
+    doc.setLineWidth(1.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 24;
+
+    // Bill to
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    doc.text('BILL TO', margin, y);
+    y += 14;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 29, 41);
+    const toLines = document.getElementById('toDetails').value.split('\n');
+    toLines.forEach(line => { doc.text(line, margin, y); y += 14; });
+
+    y += 16;
+
+    // Table header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(107, 114, 128);
+    const col1 = margin, col2 = pageWidth - margin - 200, col3 = pageWidth - margin - 130, col4 = pageWidth - margin - 60;
+    doc.text('DESCRIPTION', col1, y);
+    doc.text('QTY', col2, y, { align: 'right' });
+    doc.text('RATE', col3, y, { align: 'right' });
+    doc.text('AMOUNT', pageWidth - margin, y, { align: 'right' });
+    y += 6;
+    doc.setDrawColor(26, 29, 41);
+    doc.setLineWidth(1.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 16;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(26, 29, 41);
+
+    let subtotal = 0;
+    const rows = lineItemsContainer.querySelectorAll('.line-item');
+    rows.forEach(row => {
+      const desc = row.querySelector('.li-desc').value || 'Item';
+      const qty = parseFloat(row.querySelector('.li-qty').value) || 0;
+      const rate = parseFloat(row.querySelector('.li-rate').value) || 0;
+      const amount = qty * rate;
+      subtotal += amount;
+
+      const descLines = doc.splitTextToSize(desc, col2 - col1 - 20);
+      doc.text(descLines, col1, y);
+      doc.text(String(qty), col2, y, { align: 'right' });
+      doc.text(currency + rate.toFixed(2), col3, y, { align: 'right' });
+      doc.text(currency + amount.toFixed(2), pageWidth - margin, y, { align: 'right' });
+
+      y += Math.max(descLines.length * 12, 16);
+      doc.setDrawColor(232, 228, 220);
+      doc.setLineWidth(0.5);
+      doc.line(margin, y, pageWidth - margin, y);
+      y += 14;
+    });
+
+    // Totals
+    const taxRate = parseFloat(document.getElementById('taxRate').value) || 0;
+    const discount = parseFloat(document.getElementById('discount').value) || 0;
+    const discountAmount = subtotal * (discount / 100);
+    const taxedAmount = (subtotal - discountAmount) * (taxRate / 100);
+    const total = subtotal - discountAmount + taxedAmount;
+
+    y += 10;
+    const totalsX = pageWidth - margin;
+    const totalsLabelX = totalsX - 150;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Subtotal', totalsLabelX, y);
+    doc.text(currency + subtotal.toFixed(2), totalsX, y, { align: 'right' });
+    y += 16;
+
+    if (discount > 0) {
+      doc.text(`Discount (${discount}%)`, totalsLabelX, y);
+      doc.text('−' + currency + discountAmount.toFixed(2), totalsX, y, { align: 'right' });
+      y += 16;
+    }
+    if (taxRate > 0) {
+      doc.text(`Tax (${taxRate}%)`, totalsLabelX, y);
+      doc.text(currency + taxedAmount.toFixed(2), totalsX, y, { align: 'right' });
+      y += 16;
+    }
+
+    doc.setDrawColor(26, 29, 41);
+    doc.setLineWidth(1.5);
+    doc.line(totalsLabelX, y, totalsX, y);
+    y += 16;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(255, 90, 54);
+    doc.text('Total', totalsLabelX, y);
+    doc.text(currency + total.toFixed(2), totalsX, y, { align: 'right' });
+
+    // Notes
+    const notes = document.getElementById('notes').value;
+    if (notes.trim()) {
+      y += 40;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.text('NOTES', margin, y);
+      y += 14;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      const noteLines = doc.splitTextToSize(notes, pageWidth - margin * 2);
+      doc.text(noteLines, margin, y);
+    }
+
+    const invNum = document.getElementById('invNumber').value || 'invoice';
+    doc.save(`${invNum.replace(/[^a-z0-9-_]/gi, '_')}.pdf`);
+  });
+
+  // Reset
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    if (!confirm('Clear all fields and start over?')) return;
+    document.getElementById('fromName').value = '';
+    document.getElementById('fromEmail').value = '';
+    document.getElementById('fromAddress').value = '';
+    document.getElementById('toDetails').value = '';
+    document.getElementById('invNumber').value = 'INV-0001';
+    document.getElementById('taxRate').value = 0;
+    document.getElementById('discount').value = 0;
+    document.getElementById('notes').value = '';
+    lineItemsContainer.innerHTML = '';
+    lineItemsContainer.appendChild(createLineItem());
+    render();
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>
